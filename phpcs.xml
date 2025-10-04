@@ -12,6 +12,9 @@
     <rule ref="SlevomatCodingStandard.TypeHints.UnionTypeHintFormat.DisallowedShortNullable">
         <severity>0</severity>
     </rule>
+    <rule ref="Squiz.Commenting.FunctionComment.SpacingAfterParamType">
+        <severity>0</severity>
+    </rule>
 
     <!-- Scan these directories -->
     <file>src</file>

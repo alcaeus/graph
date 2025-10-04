@@ -9,17 +9,26 @@ use InvalidArgumentException;
 use function is_string;
 use function sprintf;
 
+/**
+ * @template NodeDataType
+ * @template EdgeDataType
+ */
 final class Graph
 {
-    /** @var array<string, Node> */
+    /** @var array<string, Node<NodeDataType, EdgeDataType>> */
     private array $nodes = [];
 
-    /** @var array<string, list<Edge>> */
+    /** @var array<string, list<Edge<NodeDataType, EdgeDataType>>> */
     private array $outgoingEdges = [];
 
-    /** @var array<string, list<Edge>> */
+    /** @var array<string, list<Edge<NodeDataType, EdgeDataType>>> */
     private array $incomingEdges = [];
 
+    /**
+     * @param NodeDataType $data
+     *
+     * @return Node<NodeDataType, EdgeDataType>
+     */
     public function addNode(string $id, mixed $data = null): Node
     {
         if ($this->hasNode($id)) {
@@ -33,6 +42,7 @@ final class Graph
         return $this->nodes[$id];
     }
 
+    /** @return Node<NodeDataType, EdgeDataType> */
     public function getNode(string $id): Node
     {
         return $this->nodes[$id] ?? throw new InvalidArgumentException(sprintf('Node with ID "%s" not found', $id));
@@ -43,6 +53,13 @@ final class Graph
         return isset($this->nodes[$id]);
     }
 
+    /**
+     * @param Node<NodeDataType, EdgeDataType>|string $from
+     * @param Node<NodeDataType, EdgeDataType>|string $to
+     * @param EdgeDataType $data
+     *
+     * @return Edge<NodeDataType, EdgeDataType>
+     */
     public function connect(Node|string $from, Node|string $to, mixed $data = null): Edge
     {
         if (is_string($from)) {
@@ -64,13 +81,21 @@ final class Graph
         return $edge;
     }
 
-    /** @return list<Edge> */
+    /**
+     * @param Node<NodeDataType, EdgeDataType> $node
+     *
+     * @return list<Edge<NodeDataType, EdgeDataType>>
+     */
     public function getIncomingEdges(Node $node): array
     {
         return $this->incomingEdges[$node->id];
     }
 
-    /** @return list<Edge> */
+    /**
+     * @param Node<NodeDataType, EdgeDataType> $node
+     *
+     * @return list<Edge<NodeDataType, EdgeDataType>>
+     */
     public function getOutgoingEdges(Node $node): array
     {
         return $this->outgoingEdges[$node->id];
