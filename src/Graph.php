@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Alcaeus\Graph;
 
 use InvalidArgumentException;
+
 use function is_string;
 use function sprintf;
 
@@ -11,15 +14,12 @@ final class Graph
     /** @var array<string, Node> */
     private array $nodes = [];
 
-    /** @var Edge */
+    /** @var array<string, list<Edge>> */
     private array $outgoingEdges = [];
 
-    /** @var Edge */
+    /** @var array<string, list<Edge>> */
     private array $incomingEdges = [];
 
-    /*
-     * Node logic
-     */
     public function addNode(string $id, mixed $data = null): Node
     {
         if ($this->hasNode($id)) {
@@ -43,21 +43,17 @@ final class Graph
         return isset($this->nodes[$id]);
     }
 
-    /*
-     * Edge logic
-     */
-
     public function connect(Node|string $from, Node|string $to, mixed $data = null): Edge
     {
         if (is_string($from)) {
             $from = $this->getNode($from);
-        } else if ($from->graph !== $this) {
+        } elseif ($from->graph !== $this) {
             throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $from->id));
         }
 
         if (is_string($to)) {
             $to = $this->getNode($to);
-        } else if ($to->graph !== $this) {
+        } elseif ($to->graph !== $this) {
             throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $to->id));
         }
 

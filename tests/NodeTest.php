@@ -9,6 +9,7 @@ use Alcaeus\Graph\Node;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 #[CoversClass(Node::class)]
 class NodeTest extends TestCase
@@ -56,7 +57,7 @@ class NodeTest extends TestCase
 
     public function testCanCreateNodeWithObjectData(): void
     {
-        $data = new \stdClass();
+        $data = new stdClass();
         $data->property = 'value';
         $node = $this->graph->addNode('node-1', $data);
 

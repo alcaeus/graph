@@ -7,8 +7,11 @@ namespace Alcaeus\Graph\Tests;
 use Alcaeus\Graph\Edge;
 use Alcaeus\Graph\Graph;
 use Alcaeus\Graph\Node;
+use DateTime;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use stdClass;
 
 #[CoversClass(Edge::class)]
 class EdgeTest extends TestCase
@@ -68,7 +71,7 @@ class EdgeTest extends TestCase
 
     public function testCanCreateEdgeWithObjectData(): void
     {
-        $data = new \stdClass();
+        $data = new stdClass();
         $data->property = 'value';
         $edge = new Edge($this->node1, $this->node2, $data);
 
@@ -132,7 +135,7 @@ class EdgeTest extends TestCase
         $this->assertEquals('data', $edge->data);
 
         // Properties should be readonly (this is enforced by PHP's readonly keyword)
-        $reflection = new \ReflectionClass($edge);
+        $reflection = new ReflectionClass($edge);
         $fromProperty = $reflection->getProperty('from');
         $toProperty = $reflection->getProperty('to');
         $dataProperty = $reflection->getProperty('data');
@@ -162,7 +165,7 @@ class EdgeTest extends TestCase
     {
         $complexData = [
             'metadata' => [
-                'created' => new \DateTime(),
+                'created' => new DateTime(),
                 'author' => 'system',
                 'tags' => ['important', 'automated'],
             ],
@@ -179,23 +182,21 @@ class EdgeTest extends TestCase
         $edge = new Edge($this->node1, $this->node2, $complexData);
 
         $this->assertSame($complexData, $edge->data);
-        $this->assertInstanceOf(\DateTime::class, $edge->data['metadata']['created']);
+        $this->assertInstanceOf(DateTime::class, $edge->data['metadata']['created']);
         $this->assertEquals('system', $edge->data['metadata']['author']);
         $this->assertEquals(0.75, $edge->data['properties']['weight']);
     }
 
     public function testEdgeClassIsFinal(): void
     {
-        $reflection = new \ReflectionClass(Edge::class);
+        $reflection = new ReflectionClass(Edge::class);
 
         $this->assertTrue($reflection->isFinal());
     }
 
     public function testEdgeWithCallableData(): void
     {
-        $callable = function () {
-            return 'callable result';
-        };
+        $callable = static fn () => 'callable result';
         $edge = new Edge($this->node1, $this->node2, $callable);
 
         $this->assertSame($callable, $edge->data);

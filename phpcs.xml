@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ruleset name="Alcaeus Graph">
+    <description>Coding standard for Alcaeus Graph library</description>
+
+    <!-- Use Doctrine Coding Standard -->
+    <rule ref="Doctrine"/>
+
+    <!-- Disable specific sniffs -->
+    <rule ref="Generic.Formatting.MultipleStatementAlignment.NotSame">
+        <severity>0</severity>
+    </rule>
+    <rule ref="SlevomatCodingStandard.TypeHints.UnionTypeHintFormat.DisallowedShortNullable">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Scan these directories -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Show progress -->
+    <arg value="p"/>
+
+    <!-- Use colors in output -->
+    <arg name="colors"/>
+
+    <!-- Show sniff codes in all reports -->
+    <arg value="s"/>
+
+    <!-- Only check PHP files -->
+    <arg name="extensions" value="php"/>
+
+    <!-- Ignore vendor directory if present -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+</ruleset>
