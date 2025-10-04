@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Alcaeus\Graph\Tests;
+namespace Alcaeus\Graph\Tests\PathFinder;
 
+use Alcaeus\Graph\Algorithm\PathFinder;
 use Alcaeus\Graph\Graph;
 use Alcaeus\Graph\Path;
 use InvalidArgumentException;
@@ -17,8 +18,8 @@ use function sprintf;
 use function strcmp;
 use function usort;
 
-#[CoversClass(Graph::class)]
-class GraphPathfindingTest extends TestCase
+#[CoversClass(PathFinder::class)]
+class PathFinderTest extends TestCase
 {
     private Graph $graph;
 

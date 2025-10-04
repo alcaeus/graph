@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Alcaeus\Graph;
 
+use Alcaeus\Graph\Algorithm\PathFinder;
 use InvalidArgumentException;
 
 use function is_string;
@@ -25,6 +26,16 @@ final class Graph
     private array $incomingEdges = [];
 
     /**
+     * PathFinder algorithm instance for this graph.
+     *
+     * This is lazily instantiated and recreated whenever the graph structure changes
+     * to ensure algorithm caches remain valid and consistent with the current graph state.
+     *
+     * @var PathFinder<NodeDataType, EdgeDataType>|null
+     */
+    private ?PathFinder $pathFinder = null;
+
+    /**
      * @param NodeDataType $data
      *
      * @return Node<NodeDataType, EdgeDataType>
@@ -34,6 +45,9 @@ final class Graph
         if ($this->hasNode($id)) {
             throw new InvalidArgumentException(sprintf('Node with ID "%s" already exists', $id));
         }
+
+        // Clear cache since graph structure is changing
+        $this->clearCache();
 
         $this->nodes[$id] = new Node($this, $id, $data);
         $this->incomingEdges[$id] = [];
@@ -74,6 +88,9 @@ final class Graph
             throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $to->id));
         }
 
+        // Clear cache since graph structure is changing
+        $this->clearCache();
+
         $edge = new Edge($from, $to, $data);
         $this->outgoingEdges[$from->id][] = $edge;
         $this->incomingEdges[$to->id][] = $edge;
@@ -101,26 +118,21 @@ final class Graph
         return $this->outgoingEdges[$node->id];
     }
 
-    /*
-     * Path finding logic
+    /**
+     * Clear all path computation caches.
+     *
+     * This method is called whenever the graph structure changes (nodes or edges added)
+     * to ensure cached results remain valid. While this invalidates all cached data,
+     * it's necessary to maintain correctness as new nodes/edges can create new paths
+     * or make previously unreachable nodes accessible.
      */
+    private function clearCache(): void
+    {
+        $this->pathFinder = null;
+    }
 
     /**
-     * Find all paths from one node to another using depth-first search.
-     *
-     * This implementation uses a modified depth-first search (DFS) algorithm to find all
-     * possible paths between two nodes in the graph. The algorithm is based on the classic
-     * "All Simple Paths" problem solution.
-     *
-     * Algorithm characteristics:
-     * - Time complexity: O(V! * E) in worst case for dense graphs with many paths
-     * - Space complexity: O(V) for recursion stack and visited tracking
-     * - Avoids cycles by tracking visited nodes in current path
-     * - Returns all simple paths (no repeated nodes within a single path)
-     *
-     * References:
-     * - Tarjan, R. E. (1981). "A unified approach to path problems"
-     * - Sedgewick, R. & Wayne, K. "Algorithms, 4th Edition" - Graph Processing
+     * Find all paths from one node to another using optimized depth-first search.
      *
      * @param Node<NodeDataType, EdgeDataType>|string $from Starting node (or node ID)
      * @param Node<NodeDataType, EdgeDataType>|string $to   Destination node (or node ID)
@@ -131,77 +143,8 @@ final class Graph
      */
     public function getPaths(Node|string $from, Node|string $to): array
     {
-        // Normalize inputs to Node objects
-        $fromNode = is_string($from) ? $this->getNode($from) : $from;
-        $toNode = is_string($to) ? $this->getNode($to) : $to;
+        $this->pathFinder ??= new PathFinder($this);
 
-        // Validate nodes belong to this graph
-        if ($fromNode->graph !== $this) {
-            throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $fromNode->id));
-        }
-
-        if ($toNode->graph !== $this) {
-            throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $toNode->id));
-        }
-
-        $allPaths = [];
-        $currentPath = [];
-        $visited = [];
-
-        $this->findAllPathsDFS($fromNode, $toNode, $currentPath, $visited, $allPaths);
-
-        return $allPaths;
-    }
-
-    /**
-     * Recursive depth-first search to find all paths between two nodes.
-     *
-     * This is the core pathfinding algorithm implementing a backtracking approach:
-     * 1. Mark current node as visited in this path
-     * 2. If we reached the destination, record the path
-     * 3. Otherwise, explore all unvisited neighbors recursively
-     * 4. Backtrack by unmarking the current node as visited
-     *
-     * The algorithm ensures we find all simple paths (no cycles within a single path)
-     * while being efficient through pruning of already-visited nodes in the current path.
-     *
-     * @param Node<NodeDataType, EdgeDataType> $current     Current node being explored
-     * @param Node<NodeDataType, EdgeDataType> $destination Target node we're trying to reach
-     * @param list<Edge<NodeDataType, EdgeDataType>> $currentPath Edges in the current path being built
-     * @param array<string, bool> $visited     Nodes visited in current path (for cycle detection)
-     * @param list<Path<NodeDataType, EdgeDataType>> $allPaths    Accumulator for all found paths (passed by reference)
-     */
-    private function findAllPathsDFS(
-        Node $current,
-        Node $destination,
-        array $currentPath,
-        array $visited,
-        array &$allPaths,
-    ): void {
-        // Mark current node as visited in this path
-        $visited[$current->id] = true;
-
-        // If we reached the destination, we found a complete path
-        if ($current === $destination) {
-            $startNode = empty($currentPath) ? $current : $currentPath[0]->from;
-            $allPaths[] = new Path($startNode, $destination, $currentPath);
-
-            return;
-        }
-
-        // Explore all outgoing edges from current node
-        foreach ($this->getOutgoingEdges($current) as $edge) {
-            $nextNode = $edge->to;
-
-            // Only continue if we haven't visited this node in the current path
-            // (this prevents infinite loops in cyclic graphs)
-            if (isset($visited[$nextNode->id])) {
-                continue;
-            }
-
-            // Add this edge to current path and continue recursively
-            $newPath = [...$currentPath, $edge];
-            $this->findAllPathsDFS($nextNode, $destination, $newPath, $visited, $allPaths);
-        }
+        return $this->pathFinder->findAllPaths($from, $to);
     }
 }
