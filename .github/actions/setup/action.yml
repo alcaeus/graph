@@ -1,0 +1,21 @@
+name: 'Setup PHP and Dependencies'
+description: 'Checkout code, setup PHP, and install Composer dependencies'
+
+inputs:
+  php-version:
+    description: 'PHP version to setup'
+    required: false
+    default: '8.4'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        coverage: none
+        tools: cs2pr
+
+    - name: Install Composer dependencies
+      uses: ramsey/composer-install@v3

@@ -1,0 +1,23 @@
+name: PHPStan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  phpstan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Setup PHP and Dependencies
+      uses: ./.github/actions/setup
+
+    - name: Run PHPStan
+      run: vendor/bin/phpstan analyse --error-format=github
