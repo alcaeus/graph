@@ -10,7 +10,8 @@ use Alcaeus\Graph\Node;
 use Alcaeus\Graph\Path;
 use InvalidArgumentException;
 
-use function is_string;
+use function array_merge;
+use function assert;
 use function sprintf;
 
 /**
@@ -73,42 +74,43 @@ final class PathFinder
      *
      * @return list<Path<NodeDataType, EdgeDataType>> All paths from start to end node
      *
-     * @throws InvalidArgumentException if nodes don't exist or don't belong to this graph.
+     * @throws InvalidArgumentException if nodes don't exist, don't belong to this graph, or if they are identical.
      */
     public function findAllPaths(Node|string $from, Node|string $to): array
     {
-        // Normalize inputs to string IDs for consistent cache keys
-        $fromId = is_string($from) ? $from : $from->id;
-        $toId = is_string($to) ? $to : $to->id;
+        if (! $from instanceof Node) {
+            $from = $this->graph->getNode($from);
+        }
+
+        if (! $to instanceof Node) {
+            $to = $this->graph->getNode($to);
+        }
 
         // Check cache for previously computed paths
-        if (isset($this->pathCache[$fromId][$toId])) {
-            return $this->pathCache[$fromId][$toId];
+        if (isset($this->pathCache[$from->id][$to->id])) {
+            return $this->pathCache[$from->id][$to->id];
         }
-
-        // Normalize inputs to Node objects
-        $fromNode = is_string($from) ? $this->graph->getNode($from) : $from;
-        $toNode = is_string($to) ? $this->graph->getNode($to) : $to;
 
         // Validate nodes belong to this graph
-        if ($fromNode->graph !== $this->graph) {
-            throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $fromNode->id));
+        if ($from->graph !== $this->graph) {
+            throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $from->id));
         }
 
-        if ($toNode->graph !== $this->graph) {
-            throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $toNode->id));
+        if ($to->graph !== $this->graph) {
+            throw new InvalidArgumentException(sprintf('Node "%s" does not belong to this graph', $to->id));
         }
 
-        $allPaths = [];
+        if ($from === $to) {
+            throw new InvalidArgumentException(sprintf('Cannot find paths from node "%s" to itself', $from->id));
+        }
+
         $currentPath = [];
         $visited = [];
 
-        $this->findAllPathsOptimizedDFS($fromNode, $toNode, $currentPath, $visited, $allPaths);
-
         // Store computed paths in cache
-        $this->pathCache[$fromId][$toId] = $allPaths;
+        $this->pathCache[$from->id][$to->id] = $this->depthFirstSearch($from, $to, $currentPath, $visited);
 
-        return $allPaths;
+        return $this->pathCache[$from->id][$to->id];
     }
 
     /**
@@ -121,25 +123,21 @@ final class PathFinder
      * @param Node<NodeDataType, EdgeDataType> $destination Target node we're trying to reach
      * @param list<Edge<NodeDataType, EdgeDataType>> $currentPath Edges in the current path being built
      * @param array<string, bool> $visited     Nodes visited in current path (for cycle detection)
-     * @param list<Path<NodeDataType, EdgeDataType>> $allPaths    Accumulator for all found paths (passed by reference)
+     *
+     * @return list<Path<NodeDataType, EdgeDataType>>
      */
-    private function findAllPathsOptimizedDFS(
+    private function depthFirstSearch(
         Node $current,
         Node $destination,
         array $currentPath,
         array $visited,
-        array &$allPaths,
-    ): void {
+    ): array {
+        assert($current->id !== $destination->id);
+
         // Mark current node as visited in this path
         $visited[$current->id] = true;
 
-        // If we reached the destination, we found a complete path
-        if ($current === $destination) {
-            $startNode = empty($currentPath) ? $current : $currentPath[0]->from;
-            $allPaths[] = new Path($startNode, $destination, $currentPath);
-
-            return;
-        }
+        $paths = [];
 
         // Explore all outgoing edges from current node
         foreach ($this->graph->getOutgoingEdges($current) as $edge) {
@@ -151,9 +149,27 @@ final class PathFinder
                 continue;
             }
 
-            // Add this edge to current path and continue recursively
             $newPath = [...$currentPath, $edge];
-            $this->findAllPathsOptimizedDFS($nextNode, $destination, $newPath, $visited, $allPaths);
+            $segmentPath = new Path($newPath[0]->from, $nextNode, $newPath);
+
+            // Cache the path segment from the first node in the path to the current nextNode
+            $this->pathCache[$newPath[0]->from->id][$nextNode->id][] = $segmentPath;
+
+            // If we reached our destination, we found a complete path.
+            // Add the new path to the list, but continue exploring other edges.
+            if ($nextNode === $destination) {
+                $paths[] = $segmentPath;
+
+                continue;
+            }
+
+            // If we haven't reached the destination yet, recurse deeper.
+            $paths = array_merge($paths, $this->depthFirstSearch($nextNode, $destination, $newPath, $visited));
         }
+
+        // At this point, we've found all paths from current to destination.
+        // Add them to the cache for future reference
+
+        return $paths;
     }
 }

@@ -6,7 +6,6 @@ namespace Alcaeus\Graph\Tests\PathFinder;
 
 use Alcaeus\Graph\Algorithm\PathFinder;
 use Alcaeus\Graph\Graph;
-use Alcaeus\Graph\Path;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -42,13 +41,10 @@ class PathFinderTest extends TestCase
     {
         $nodeA = $this->graph->addNode('A');
 
-        $paths = $this->graph->getPaths($nodeA, $nodeA);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot find paths from node "A" to itself');
 
-        $this->assertCount(1, $paths);
-        $this->assertInstanceOf(Path::class, $paths[0]);
-        $this->assertSame($nodeA, $paths[0]->start);
-        $this->assertSame($nodeA, $paths[0]->end);
-        $this->assertEquals(0, $paths[0]->getLength());
+        $this->graph->getPaths($nodeA, $nodeA);
     }
 
     public function testGetPathsWithDirectConnection(): void
